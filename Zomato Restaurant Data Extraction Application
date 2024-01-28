@@ -1,0 +1,138 @@
+#Objective:
+The objective of this project is to develop an application for extracting restaurant data from Zomato. The application will utilize web scraping techniques to capture information such as food images, 
+the number of votes, food names, prices and description. The collected dataset can be utilized for various applications, including restaurant analysis, customer preferences, and pricing trends.
+
+#website links used
+#Website Links Example 
+Links https://www.zomato.com/, 
+https://www.zomato.com/chennai/t-nagar-restaurants, 
+https://www.zomato.com/chennai/murugan-idli-shop-t-nagar/order
+
+# python_code
+# Data Extraction: Implement web scraping using tools like Selenium, BeautifulSoup, or any other suitable tools 
+# to retrieve restaurant data from Zomato.
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
+import pandas as pd
+
+from selenium import webdriver
+
+# Replace 'C:/path/to/chromedriver.exe' with the actual path you copied
+driver = webdriver.Chrome(executable_path='C:/Users/YourUsername/Downloads/chromedriver.exe')
+
+# Configure the webdriver (download the appropriate driver for your browser)
+# Chromedriver: https://sites.google.com/chromium.org/driver/
+# Firefox GeckoDriver: https://github.com/mozilla/geckodriver/releases
+driver = webdriver.Chrome(executable_path='C:/path/to/chromedriver.exe')
+driver = webdriver.Chrome(executable_path='C:\Users\DELL\Downloads')
+
+def scrape_zomato(location_url):
+    driver.get(location_url)
+    data = []
+
+    try:
+        # Wait for the page to load
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "search-results")))
+
+        # Extract restaurant data using BeautifulSoup
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        restaurants = soup.find_all('div', class_='search-card')
+
+        for restaurant in restaurants:
+            name = restaurant.find('a', class_='result-title').text.strip()
+            location = restaurant.find('div', class_='resinfo-icon').find_next('a').text.strip()
+            timings = restaurant.find('div', class_='res-timing').text.strip()
+            dining_ratings = restaurant.find('div', class_='res-rating-nf').text.strip()
+            delivery_ratings = restaurant.find('div', class_='res-rating-nf').find_next('div').text.strip()
+
+            data.append({
+                'Restaurant Name': name,
+                'Restaurant Location': location,
+                'Restaurant Timings': timings,
+                'Restaurant Dining Ratings': dining_ratings,
+                'Restaurant Delivery Ratings': delivery_ratings,
+            })
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+    return data
+
+def save_to_csv(data, file_path):
+    df = pd.DataFrame(data)
+    df.to_csv(file_path, index=False)
+    print(f"Data saved to {file_path}")
+
+def main():
+    location_urls = [
+        "https://www.zomato.com/chennai/t-nagar-restaurants",
+        "https://www.zomato.com/chennai/murugan-idli-shop-t-nagar/order",
+    ]
+
+    all_data = []
+    for location_url in location_urls:
+        data = scrape_zomato(location_url)
+        all_data.extend(data)
+
+    save_to_csv(all_data, "zomato_data.csv")
+
+    # Close the browser window
+    driver.quit()
+
+if __name__ == "__main__":
+    main()
+import pandas as pd
+
+# Assuming you have already scraped the data and stored it in the 'data' variable
+# Example structure of the 'data' variable:
+# data = [
+#     {'Restaurant Name': 'Restaurant1', 'Location': 'Location1', 'Rating': '4.5', ...},
+#     {'Restaurant Name': 'Restaurant2', 'Location': 'Location2', 'Rating': '4.0', ...},
+#     ...
+# ]
+
+# Convert the data to a Pandas DataFrame
+df = pd.DataFrame(data)
+
+# Display the DataFrame (optional)
+print("Extracted Restaurant Data:")
+print(df)
+
+# Save the DataFrame to a CSV file
+csv_file_path = 'zomato_data.csv'
+df.to_csv(csv_file_path, index=False)
+
+print(f"Data saved to {csv_file_path}")
+
+import streamlit as st
+import pandas as pd
+
+# Load the extracted data (replace 'zomato_data.csv' with your actual CSV file)
+csv_file_path = 'zomato_data.csv'
+df = pd.read_csv(csv_file_path)
+
+# Streamlit App
+st.title("Zomato Restaurant Data Explorer")
+
+# Display the DataFrame (optional)
+st.subheader("Extracted Restaurant Data:")
+st.write(df)
+
+# Interactive components for exploring data
+st.sidebar.title("Explore Data")
+
+# Filter by Location
+selected_location = st.sidebar.selectbox("Select Location:", df['Restaurant Location'].unique())
+filtered_data = df[df['Restaurant Location'] == selected_location]
+
+# Filter by Dining Ratings
+min_dining_rating = st.sidebar.slider("Minimum Dining Rating", float(df['Restaurant Dining Ratings'].min()), float(df['Restaurant Dining Ratings'].max()))
+filtered_data = filtered_data[filtered_data['Restaurant Dining Ratings'] >= min_dining_rating]
+
+# Display filtered data
+st.subheader(f"Filtered Data for {selected_location} with Minimum Dining Rating {min_dining_rating}:")
+st.write(filtered_data)
